@@ -1,14 +1,16 @@
-# DCAU İzleme Rehberi - Versiyon 1.0
+# DCAU İzleme Rehberi - Versiyon 2.0 (Etkileşimli)
 
 print("--- DCAU Rehberine Hoş Geldin! ---")
 
-# İzlediklerimizi bir listede tutuyoruz.
+# input() ile ekrana bir soru yazdırıp, cevabı 'son_izlenen' değişkenine kaydediyoruz.
+son_izlenen = input("DCAU evreninde en son hangi seriyi bitirdin? (Lütfen tam adını yaz): ")
 
-izlenen_diziler = ["Batman: The Animated Series", "The New Batman Adventures"]
+# Kullanıcının girdiği cevaba göre if/else mantığıyla karar veriyoruz.
+if son_izlenen == "Batman: The Animated Series":
+    print("Harika bir klasik! Sıradaki hedefin: The New Batman Adventures")
 
-# Sıradaki diziyi bir değişkene atıyoruz.
+elif son_izlenen == "The New Batman Adventures":
+    print("Güzel ilerliyorsun! O zaman sıradaki hedefin: Batman Beyond")
 
-siradaki_dizi = "Batman Beyond"
-
-print("Şu ana kadar bitirdiklerin:", izlenen_diziler)
-print("Sana tavsiyem, artık şu seriye başlamalısın:", siradaki_dizi)
+else:
+    print("Hmmm, listemde bu isme göre bir yönlendirme yok. Acaba ismini mi yanlış yazdın?")
