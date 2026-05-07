@@ -1,6 +1,8 @@
-# DCAU Watch Guide - Version 5.0 (GUI Edition)
+# DCAU Watch Guide - Version 5.1 (Saved Progress)
 import tkinter as tk
 from tkinter import ttk
+import json
+import os
 
 # The timeline dictionary (Key: watched series, Value: next series to watch)
 dcau_timeline = {
@@ -11,12 +13,27 @@ dcau_timeline = {
     "justice league": "Justice League Unlimited",
 }
 
+# Function to save the user's last watched show to a JSON file
+def save_progress(last_show_name):
+    data = {"last_watched": last_show_name}
+    with open("progress.json", "w") as f:
+        json.dump(data, f)
+
+# Function to load the user's last watched show from a JSON file
+def load_progress():
+    if os.path.exists("progress.json"):
+        with open("progress.json", "r") as f:
+            data = json.load(f)
+            return data.get("last_watched", "Select a series...")
+    return "Select a series..."
+
 # Function to find the next show based on the selected show
 def find_next_show():
     selected_show = show_combobox.get()
 
     if selected_show in dcau_timeline:
         next_show = dcau_timeline[selected_show]
+        save_progress(selected_show)
         result_label.config(text=f"Next up: {next_show}", fg="green")
     else:
         result_label.config(text="Please select a valid show from the list.", fg="red")
@@ -38,7 +55,8 @@ instruction_label.pack(pady=5)
 # Combobox
 show_list = list(dcau_timeline.keys())
 show_combobox = ttk.Combobox(window, values=show_list, width=35, state="readonly")
-show_combobox.set("Select a series...")
+saved_show = load_progress()
+show_combobox.set(saved_show)
 show_combobox.pack(pady=5)
 
 # Calculate button
