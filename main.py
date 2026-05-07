@@ -1,4 +1,4 @@
-# DCAU Watch Guide - Version 5.3 (Visual Update)
+# DCAU Watch Guide - Version 5.4 (Responsive Design)
 import customtkinter as ctk
 import json
 import os
@@ -105,36 +105,41 @@ dcau_timeline = load_timeline()
 # Create the main application window
 window = ctk.CTk()
 window.title("DCAU Watch Guide")
-window.geometry("500x600")
+window.geometry("550x650")
+
+window.minsize(450, 600)
+
+main_freme = ctk.CTkFrame(window, fg_color="transparent")
+main_freme.pack(expand=True, fill="both", padx=40, pady=40)
 
 # Title label
-title_label = ctk.CTkLabel(window, text="🦇 DCAU Watch Guide", font=TITLE_FONT, text_color=ACCENT_COLOR)
+title_label = ctk.CTkLabel(main_freme, text="🦇 DCAU Watch Guide", font=TITLE_FONT, text_color=ACCENT_COLOR)
 title_label.pack(pady=(20, 15))
 
 # Instruction label
-instruction_label = ctk.CTkLabel(window, text="Which series did you finish last?", font=NORMAL_FONT)
+instruction_label = ctk.CTkLabel(main_freme, text="Which series did you finish last?", font=NORMAL_FONT)
 instruction_label.pack(pady=5)
 
 # Combobox
 show_list = list(dcau_timeline.keys())
-show_combobox = ctk.CTkComboBox(window, values=show_list, width=350, font=NORMAL_FONT, dropdown_font=NORMAL_FONT, border_color=ACCENT_COLOR)
+show_combobox = ctk.CTkComboBox(main_freme, values=show_list, width=350, font=NORMAL_FONT, dropdown_font=NORMAL_FONT, border_color=ACCENT_COLOR)
 show_combobox.set(load_progress())
 show_combobox.pack(pady=10)
 
 # Calculate button
-calculate_btn = ctk.CTkButton(window, text="FIND NEXT SHOW", command=find_next_show, fg_color=ACCENT_COLOR, text_color="black", hover_color="#d4aa00", font=("Segoe UI", 14, "bold"), corner_radius=8, width=200, height=40)
+calculate_btn = ctk.CTkButton(main_freme, text="FIND NEXT SHOW", command=find_next_show, fg_color=ACCENT_COLOR, text_color="black", hover_color="#d4aa00", font=("Segoe UI", 14, "bold"), corner_radius=8, width=200, height=40)
 calculate_btn.pack(pady=20)
 
 # Result label
-result_label = ctk.CTkLabel(window, text="", font=("Segoe UI", 16, "bold"))
+result_label = ctk.CTkLabel(main_freme, text="", font=("Segoe UI", 16, "bold"))
 result_label.pack(pady=5)
 
 # Details label
-details_label = ctk.CTkLabel(window, text="", font=SMALL_FONT)
+details_label = ctk.CTkLabel(main_freme, text="", font=SMALL_FONT)
 details_label.pack(pady=5)
 
 # Poster label
-poster_label = ctk.CTkLabel(window, text="")
+poster_label = ctk.CTkLabel(main_freme, text="")
 poster_label.pack(pady=10)
 
 
