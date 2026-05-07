@@ -1,4 +1,4 @@
-# DCAU Watch Guide - Version 5.4 (Responsive Design)
+# Universal Marathon Tracker - Version 6.0 (Multiverse Engine)
 import customtkinter as ctk
 import json
 import os
@@ -29,21 +29,21 @@ def load_timeline():
             return json.load(file)
     except FileNotFoundError:
         print("HATA: timeline.json dosyası bulunamadı!")
-        return {"hata": "Veritabanı Bulunamadı"}
+        return {}
     
 # Function to load the user's last watched show from a JSON file
 def load_progress():
     if os.path.exists("progress.json"):
-        with open("progress.json", "r") as f:
-            data = json.load(f)
-            return data.get("last_watched", "Select a series...")
-    return "Select a series..."
+        with open("progress.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 # Function to save the user's last watched show to a JSON file
-def save_progress(last_show_name):
-    data = {"last_watched": last_show_name}
-    with open("progress.json", "w") as f:
-        json.dump(data, f)
+def save_progress(universe_name, show_name):
+    progress_data = load_progress()
+    progress_data[universe_name] = show_name
+    with open("progress.json", "w", encoding="utf-8") as f:
+        json.dump(progress_data, f, indent=4)
 
 # ==========================================
 # 3. INTERNET AND API INTEGRATION
@@ -68,79 +68,107 @@ def fetch_show_details(show_name):
         return {"text": "No internet connection", "image_url": None}
     
 # ==========================================
-# 4. GUI SETUP
+# 4. GUI BRAINS AND LOGIC
 # ==========================================
+# Updates the show combobox based on the selected universe and loads the last watched show
+def update_show_menu(selected_universe):
+    show_in_universe = timeline_db.get(selected_universe, [])
+    show_combobox.configure(values=show_in_universe)
+
+    saved_progress = load_progress()
+    last_watched = saved_progress.get(selected_universe, show_in_universe[0] if show_in_universe else "")
+    show_combobox.set(last_watched)
+
+    result_label.configure(text="")
+    details_label.configure(text="")
+    poster_label.configure(image='', text="")
+
 # Function to find the next show based on the selected show
 def find_next_show():
+    selected_universe = universe_combobox.get()
     selected_show = show_combobox.get()
 
-    if selected_show in dcau_timeline:
-        next_show = dcau_timeline[selected_show]
-        save_progress(selected_show)
-        result_label.configure(text=f"Next up: {next_show}", text_color=SUCCESS_COLOR)
-        
-        details = fetch_show_details(next_show)
-        details_label.configure(text=details["text"], text_color="#aaaaaa")
+    universe_list = timeline_db.get(selected_universe, [])
 
-        if details["image_url"]:
-            img_response = requests.get(details["image_url"])
-            img_data = Image.open(BytesIO(img_response.content))
+    if selected_show in universe_list:
+        current_index = universe_list.index(selected_show)
 
-            ctk_image = ctk.CTkImage(light_image=img_data, dark_image=img_data, size=(160, 230))
-            poster_label.configure(image=ctk_image, text="")
+        if current_index + 1 < len(universe_list):
+            next_show = universe_list[current_index + 1]
+            result_label.configure(text=f"Next up: {next_show}", text_color=SUCCESS_COLOR)
+
+            details = fetch_show_details(next_show)
+            details_label.configure(text=details["text"], text_color="#aaaaaa")
+
+            if details["image_url"]:
+                img_response = requests.get(details["image_url"])
+                img_data = Image.open(BytesIO(img_response.content))
+                ctk_image = ctk.CTkImage(light_image=img_data, dark_image=img_data, size=(160, 230))
+                poster_label.configure(image=ctk_image, text="")
+            else:
+                poster_label.configure(image='', text="No Poster Found")
         else:
-            poster_label.configure(image='', text="No Poster Found")
-        
-        save_progress(selected_show)
+            result_label.configure(text="🎉 Congratulations! You have finished this list.", text_color=SUCCESS_COLOR)
+            details_label.configure(text="")
+            poster_label.configure(image='', text="")
+
+        save_progress(selected_universe, selected_show)   
     else:
-        result_label.configure(text="Please select a valid show from the list.", text_color=ERROR_COLOR)
-        details_label.configure(text="")
-        poster_label.configure(image='', text="")
+        result_label.configure(text="Please select a valid show.", text_color=ERROR_COLOR)
 
 # ==========================================
 # 5. GUI INITIALIZATION
 # ==========================================
-dcau_timeline = load_timeline()
+timeline_db = load_timeline()
+universes = list(timeline_db.keys())
 
 # Create the main application window
 window = ctk.CTk()
-window.title("DCAU Watch Guide")
-window.geometry("550x650")
+window.title("Universal Marathon Tracker")
+window.geometry("550x700")
+window.minsize(450, 650)
 
-window.minsize(450, 600)
-
-main_freme = ctk.CTkFrame(window, fg_color="transparent")
-main_freme.pack(expand=True, fill="both", padx=40, pady=40)
+main_frame = ctk.CTkFrame(window, fg_color="transparent")
+main_frame.pack(expand=True, fill="both", padx=40, pady=20)
 
 # Title label
-title_label = ctk.CTkLabel(main_freme, text="🦇 DCAU Watch Guide", font=TITLE_FONT, text_color=ACCENT_COLOR)
-title_label.pack(pady=(20, 15))
+title_label = ctk.CTkLabel(main_frame, text="🎬 Universal Tracker", font=TITLE_FONT, text_color=ACCENT_COLOR)
+title_label.pack(pady=(0, 20))
 
-# Instruction label
-instruction_label = ctk.CTkLabel(main_freme, text="Which series did you finish last?", font=NORMAL_FONT)
-instruction_label.pack(pady=5)
+# Universe label and combobox
+universe_label = ctk.CTkLabel(main_frame, text="Select Universe:", font=NORMAL_FONT)
+universe_label.pack(pady=(0, 5))
 
-# Combobox
-show_list = list(dcau_timeline.keys())
-show_combobox = ctk.CTkComboBox(main_freme, values=show_list, width=350, font=NORMAL_FONT, dropdown_font=NORMAL_FONT, border_color=ACCENT_COLOR)
-show_combobox.set(load_progress())
-show_combobox.pack(pady=10)
+universe_combobox = ctk.CTkComboBox(main_frame, values=universes, font=NORMAL_FONT, dropdown_font=NORMAL_FONT, border_color=ACCENT_COLOR, command=update_show_menu)
+universe_combobox.pack(pady=(0, 15), fill="x")
+
+# Show label and combobox
+show_label = ctk.CTkLabel(main_frame, text="Select Last Watched Show:", font=NORMAL_FONT)
+show_label.pack(pady=(0, 5))
+
+show_combobox = ctk.CTkComboBox(main_frame, values=[], font=NORMAL_FONT, dropdown_font=NORMAL_FONT, border_color=ACCENT_COLOR)
+show_combobox.pack(pady=(0, 15), fill="x")
 
 # Calculate button
-calculate_btn = ctk.CTkButton(main_freme, text="FIND NEXT SHOW", command=find_next_show, fg_color=ACCENT_COLOR, text_color="black", hover_color="#d4aa00", font=("Segoe UI", 14, "bold"), corner_radius=8, width=200, height=40)
-calculate_btn.pack(pady=20)
+calculate_btn = ctk.CTkButton(main_frame, text="FIND NEXT SHOW", command=find_next_show, fg_color=ACCENT_COLOR, text_color="black", hover_color="#d4aa00", font=("Segoe UI", 14, "bold"), corner_radius=8, height=40)
+calculate_btn.pack(pady=10, fill="x")
 
 # Result label
-result_label = ctk.CTkLabel(main_freme, text="", font=("Segoe UI", 16, "bold"))
-result_label.pack(pady=5)
+result_label = ctk.CTkLabel(main_frame, text="", font=("Segoe UI", 16, "bold"), wraplength=400)
+result_label.pack(pady=10)
 
 # Details label
-details_label = ctk.CTkLabel(main_freme, text="", font=SMALL_FONT)
+details_label = ctk.CTkLabel(main_frame, text="", font=SMALL_FONT)
 details_label.pack(pady=5)
 
 # Poster label
-poster_label = ctk.CTkLabel(main_freme, text="")
+poster_label = ctk.CTkLabel(main_frame, text="")
 poster_label.pack(pady=10)
+
+
+if universes:
+    universe_combobox.set(universes[0])
+    update_show_menu(universes[0])
 
 
 window.mainloop()

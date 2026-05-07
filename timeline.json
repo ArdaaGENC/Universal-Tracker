@@ -1,16 +1,32 @@
 {
-    "Batman: The Animated Series": "Batman: Mask of the Phantasm (Film)",
-    "Batman: Mask of the Phantasm (Film)": "Superman: The Animated Series",
-    "Superman: The Animated Series": "The New Batman Adventures",
-    "The New Batman Adventures": "Batman & Mr. Freeze: SubZero (Film)",
-    "Batman & Mr. Freeze: SubZero (Film)": "Batman Beyond",
-    "Batman Beyond": "Batman Beyond: Return of the Joker (Film)",
-    "Batman Beyond: Return of the Joker (Film)": "Static Shock",
-    "Static Shock": "The Zeta Project",
-    "The Zeta Project": "Justice League",
-    "Justice League": "Batman: Mystery of the Batwoman (Film)",
-    "Batman: Mystery of the Batwoman (Film)": "Justice League Unlimited",
-    "Justice League Unlimited": "Batman and Harley Quinn (Film)",
-    "Batman and Harley Quinn (Film)": "Justice League vs. the Fatal Five (Film)",
-    "Justice League vs. the Fatal Five (Film)": "Evrenin Sonu! (Tebrikler)"
+  "DCAU Evreni": [
+    "Batman: The Animated Series",
+    "Batman: Mask of the Phantasm",
+    "Superman: The Animated Series",
+    "The New Batman Adventures",
+    "Batman & Mr. Freeze: SubZero",
+    "Batman Beyond",
+    "Batman Beyond: Return of the Joker",
+    "Static Shock",
+    "The Zeta Project",
+    "Justice League",
+    "Batman: Mystery of the Batwoman",
+    "Justice League Unlimited",
+    "Batman and Harley Quinn",
+    "Justice League vs. the Fatal Five"
+  ],
+  "Miyazaki Maratonu": [
+    "The Castle of Cagliostro",
+    "Nausicaä of the Valley of the Wind",
+    "Castle in the Sky",
+    "My Neighbor Totoro",
+    "Kiki's Delivery Service",
+    "Porco Rosso",
+    "Princess Mononoke",
+    "Spirited Away",
+    "Howl's Moving Castle",
+    "Ponyo",
+    "The Wind Rises",
+    "The Boy and the Heron"
+  ]
 }
