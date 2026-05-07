@@ -1,10 +1,11 @@
-# DCAU Watch Guide - Version 5.2 (Updated Timeline and Added TVmaze API Integration)
+# DCAU Watch Guide - Version 5.3 (Visual Update)
 import tkinter as tk
 from tkinter import ttk
 import json
 import os
 import requests
-
+from PIL import Image, ImageTk
+from io import BytesIO
 
 def load_timeline():
     try:
@@ -30,22 +31,27 @@ def load_progress():
             return data.get("last_watched", "Select a series...")
     return "Select a series..."
 
-# Fetches live data from TVmaze API
+# Fetches live data and poster URL from TVmaze API
 def fetch_show_details(show_name):
-    api_url = f"https://api.tvmaze.com/singlesearch/shows?q={show_name}"
+    search_query = show_name.replace(" (Film)", "")
+    api_url = f"https://api.tvmaze.com/singlesearch/shows?q={search_query}"
 
     try:
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
-            rating = data["rating"]["average"]
-            premiered = data["premiered"]
-            return f"Rating: {rating}/10 | Premiered: {premiered}"
+            rating = data.get("rating", {}).get("average", "N/A")
+            premiered = data.get("premiered", "N/A")
+            text_info = f"Rating: {rating}/10 | Premiered: {premiered}"
+            image_url = None
+            if data.get("image"):
+                image_url = data["image"].get("medium")
+            return {"text": text_info, "image_url": image_url}
         else:
-            return "Details not available"
+            return {"text": "Details not available", "image_url": None}
     except:
-        return "No internet connection"
-    
+        return {"text": "No internet connection", "image_url": None}
+
 # Function to find the next show based on the selected show
 def find_next_show():
     selected_show = show_combobox.get()
@@ -55,14 +61,26 @@ def find_next_show():
         save_progress(selected_show)
         result_label.config(text=f"Next up: {next_show}", fg="green")
         details = fetch_show_details(next_show)
-        details_label.config(text=details, fg="blue")
+        details_label.config(text=details["text"], fg="blue")
+        if details["image_url"]:
+            img_response = requests.get(details["image_url"])
+            img_data = Image.open(BytesIO(img_response.content))
+            img_data = img_data.resize((150, 210))
+            photo = ImageTk.PhotoImage(img_data)
+            poster_label.config(image=photo)
+            poster_label.image = photo
+        else:
+            poster_label.config(image="")
+        
+        save_progress(selected_show)
     else:
         result_label.config(text="Please select a valid show from the list.", fg="red")
         details_label.config(text="")
+        poster_label.config(image='')
 # Create the main application window
 window = tk.Tk()
 window.title("DCAU Watch Guide")
-window.geometry("450x250")
+window.geometry("500x500")
 window.eval('tk::PlaceWindow . center')
 
 # Title label
@@ -91,5 +109,9 @@ result_label.pack(pady=5)
 # Details label
 details_label = tk.Label(window, text="", font=("Arial", 10, "italic"))
 details_label.pack(pady=5)
+
+# Poster label
+poster_label = tk.Label(window)
+poster_label.pack(pady=10)
 
 window.mainloop()
