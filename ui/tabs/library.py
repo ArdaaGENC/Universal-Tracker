@@ -7,14 +7,13 @@ def create_library_tab(page, switch_func):
     db = load_timeline()
     grid = ft.GridView(expand=True, max_extent=160, child_aspect_ratio=0.6, spacing=15)
 
-    def load_posters(show, img_obj):
-        det = fetch_show_details(show)
+    def load_posters(title_str, img_container):
+        det = fetch_show_details(title_str)
         if det and det.get("image_url"):
-            img_obj.src = det.get("image_url")
-            img_obj.visible = True
+            img_container.content = ft.Image(src=det.get("image_url"), fit="contain")
             try:
-                if img_obj.page:
-                    img_obj.update()
+                if img_container.page:
+                    img_container.update()
             except Exception:
                 pass
 
@@ -22,13 +21,16 @@ def create_library_tab(page, switch_func):
         new_cards = []
         pending_downloads = []
         
-        for show in db.get(uni, []):
-            img = ft.Image(src="", visible=False, fit="contain")
+        for item in db.get(uni, []):
+            title = item if isinstance(item, str) else item.get("title", "")
+            
+            img_container = ft.Container(width=120, height=180, bgcolor="#333333", border_radius=10)
+            
             card = ft.Container(
                 content=ft.Column([
-                    ft.Container(img, width=120, height=180, bgcolor="#333333", border_radius=10),
+                    img_container,
                     ft.Text(
-                        show, 
+                        title, 
                         weight="bold", 
                         text_align="center",
                         size=13,
@@ -36,30 +38,35 @@ def create_library_tab(page, switch_func):
                         overflow=ft.TextOverflow.ELLIPSIS
                     )
                 ], horizontal_alignment="center"),
-                on_click=lambda e, s=show: switch_func(0, s)
+                on_click=lambda e, s=title: switch_func(0, s)
             )
             new_cards.append(card)
-            pending_downloads.append((show, img))
+            pending_downloads.append((title, img_container))
             
         grid.controls = new_cards
         
-        if not is_initial and grid.page:
-            try:
+        if not is_initial:
+            if grid.page:
                 grid.update()
-            except Exception:
-                pass
                 
-        for show, img in pending_downloads:
-            threading.Thread(target=load_posters, args=(show, img), daemon=True).start()
+        for title_str, img_cont in pending_downloads:
+            threading.Thread(target=load_posters, args=(title_str, img_cont), daemon=True).start()
 
     universes = list(db.keys())
     initial_uni = universes[0] if universes else None
+
+    def handle_dropdown_select(e):
+        e.control.value = e.data
+        if e.control.page:
+            e.control.update()
+            
+        build_grid(e.data, is_initial=False)
 
     uni_drop = ft.Dropdown(
         options=[ft.DropdownOption(key=u, text=u) for u in universes],
         value=initial_uni, 
         width=300,
-        on_select=lambda e: build_grid(e.control.value, is_initial=False)
+        on_select=handle_dropdown_select
     )
     
     if initial_uni:

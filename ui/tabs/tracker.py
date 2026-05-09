@@ -9,54 +9,97 @@ def create_tracker_tab(page, switch_func, auto_select_show=None):
     
     if auto_select_show:
         for u, shows in db.items():
-            if auto_select_show in shows:
-                initial_uni = u
-                break
+            for item in shows:
+                title = item if isinstance(item, str) else item.get("title")
+                if auto_select_show == title:
+                    initial_uni = u
+                    break
 
-    initial_shows = db.get(initial_uni, [])
-    progress = load_progress()
-    initial_val = auto_select_show if auto_select_show else progress.get(initial_uni, initial_shows[0] if initial_shows else "")
-
-    show_drop = ft.Dropdown(
-        options=[ft.DropdownOption(key=s, text=s) for s in initial_shows], 
-        value=initial_val, 
-        width=300, 
-        label="Show"
+    uni_drop = ft.Dropdown(options=[ft.DropdownOption(key=u, text=u) for u in universes], value=initial_uni, width=300, label="Universe")
+    
+    filter_drop = ft.Dropdown(
+        options=[
+            ft.DropdownOption(key="all", text="All Types"),
+            ft.DropdownOption(key="movie", text="Movies Only"),
+            ft.DropdownOption(key="show", text="Shows Only")
+        ],
+        value="all", width=145, label="Filter"
     )
+    
+    sort_drop = ft.Dropdown(
+        options=[
+            ft.DropdownOption(key="chrono", text="Chronological"),
+            ft.DropdownOption(key="release", text="Release Order")
+        ],
+        value="chrono", width=145, label="Sort"
+    )
+
+    show_drop = ft.Dropdown(width=300, label="Show")
     res_label = ft.Text("", size=18, weight="bold", color="green")
     poster = ft.Image(src="", width=160, height=230, fit="contain", visible=False)
 
-    def on_uni_select(e):
-        new_uni = e.control.value
-        print(f"\n--- SİNYAL ULAŞTI (FLET 1.0) ---")
-        print(f"Seçilen Evren: {new_uni}")
-        
-        u_shows = db.get(new_uni, [])
-        show_drop.options.clear()
-        
-        for s in u_shows:
-            show_drop.options.append(ft.DropdownOption(key=s, text=s))
+    def update_list(e=None, force_select=None):
+        if e:
+            e.control.value = e.data
+
+        current_uni = uni_drop.value
+        if not current_uni: 
+            return
             
-        show_drop.value = progress.get(new_uni, u_shows[0] if u_shows else "")
+        raw_shows = db.get(current_uni, [])
+        processed = []
+        
+        for item in raw_shows:
+            if isinstance(item, str):
+                processed.append({"title": item, "type": "all", "chrono": 0, "release": 0})
+            else:
+                processed.append(item)
+        
+        current_filter = filter_drop.value
+        if current_filter and current_filter != "all":
+            processed = [s for s in processed if s.get("type", "all").lower() == current_filter]
+            
+        current_sort = sort_drop.value
+        if current_sort == "chrono":
+            processed = sorted(processed, key=lambda x: x.get("chrono", 0))
+        elif current_sort == "release":
+            processed = sorted(processed, key=lambda x: x.get("release", 0))
+            
+        filtered_titles = [s["title"] for s in processed]
+        
+        show_drop.options.clear()
+        for t in filtered_titles:
+            show_drop.options.append(ft.DropdownOption(key=t, text=t))
+            
+        prog = load_progress()
+        saved_val = prog.get(current_uni, "")
+        
+        if force_select and force_select in filtered_titles:
+            show_drop.value = force_select
+        elif saved_val in filtered_titles:
+            show_drop.value = saved_val
+        else:
+            show_drop.value = filtered_titles[0] if filtered_titles else None
+            
         res_label.value = ""
         poster.visible = False
         
-        e.page.update()
+        if page: 
+            page.update()
 
-    uni_drop = ft.Dropdown(
-        options=[ft.DropdownOption(key=u, text=u) for u in universes], 
-        value=initial_uni, 
-        width=300, 
-        label="Universe",
-        on_select=on_uni_select  
-    )
+    uni_drop.on_select = update_list
+    filter_drop.on_select = update_list
+    sort_drop.on_select = update_list
+    
+    update_list(force_select=auto_select_show)
 
     def find_next(e):
-        u_list = db.get(uni_drop.value, [])
-        if show_drop.value in u_list:
-            idx = u_list.index(show_drop.value)
-            if idx + 1 < len(u_list):
-                nxt = u_list[idx + 1]
+        current_titles = [opt.key for opt in show_drop.options]
+        
+        if show_drop.value in current_titles:
+            idx = current_titles.index(show_drop.value)
+            if idx + 1 < len(current_titles):
+                nxt = current_titles[idx + 1]
                 res_label.value = f"Next: {nxt}"
                 det = fetch_show_details(nxt)
                 if det and det.get("image_url"):
@@ -67,11 +110,16 @@ def create_tracker_tab(page, switch_func, auto_select_show=None):
                 poster.visible = False
             
             save_progress(uni_drop.value, show_drop.value)
-            e.page.update()
+            if e.page: 
+                e.page.update()
+
+    filter_sort_row = ft.Row([filter_drop, sort_drop], alignment=ft.MainAxisAlignment.CENTER)
 
     return ft.Container(
         content=ft.Column([
-            uni_drop, show_drop,
+            uni_drop, 
+            filter_sort_row, 
+            show_drop,
             ft.ElevatedButton("FIND NEXT", bgcolor="amber", color="black", on_click=find_next, width=300),
             res_label, poster
         ], horizontal_alignment="center", spacing=20),
