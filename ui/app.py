@@ -1,8 +1,13 @@
 import flet as ft
-from ui.tabs.tracker import create_tracker_tab
-from ui.tabs.library import create_library_tab
+from ui.tabs.tracker import TrackerTab
+from ui.tabs.library import LibraryTab
+from core.database import DatabaseManager
+from core.api import APIClient
 
 def run():
+    db_manager = DatabaseManager()
+    api_client = APIClient(db_manager)
+
     def main(page: ft.Page):
         page.title = "Universal Tracker"
         page.window.width = 550
@@ -16,16 +21,16 @@ def run():
         def switch_to_tab(index, data=None):
             tabs.selected_index = index
             if data and index == 0:
-                tab_view.controls[0] = create_tracker_tab(page, switch_to_tab, data)
+                tracker_tab.set_show(data)
             if page:
                 page.update()
 
+        tracker_tab = TrackerTab(switch_func=switch_to_tab, db=db_manager, api=api_client)
+        library_tab = LibraryTab(switch_func=switch_to_tab, db=db_manager, api=api_client)
+
         tab_view = ft.TabBarView(
             expand=True,
-            controls=[
-                create_tracker_tab(page, switch_to_tab),
-                create_library_tab(page, switch_to_tab)
-            ]
+            controls=[tracker_tab, library_tab]
         )
 
         tabs = ft.Tabs(
