@@ -1,5 +1,5 @@
 import flet as ft
-import threading
+import asyncio
 
 class LibraryTab(ft.Container):
     def __init__(self, switch_func, db, api):
@@ -9,16 +9,20 @@ class LibraryTab(ft.Container):
         self.api = api
         self.expand = True
         self.padding = 20
+        self._pending_posters = []
+
+        self.isolated = True
 
         self.grid = ft.GridView(expand=True, max_extent=160, child_aspect_ratio=0.6, spacing=15)
-        
+
         timeline_data = self.db.load_timeline()
-        universes = list(timeline_data.keys())
-        initial_uni = universes[0] if universes else None
+        self.universes = list(timeline_data.keys())
+        initial_uni = self.universes[0] if self.universes else None
 
         self.uni_drop = ft.Dropdown(
-            options=[ft.DropdownOption(key=u, text=u) for u in universes],
-            value=initial_uni, 
+            label="Universe",
+            options=[ft.DropdownOption(key=u, text=u) for u in self.universes],
+            value=initial_uni,
             width=300,
             on_select=self._handle_dropdown_select
         )
@@ -28,56 +32,88 @@ class LibraryTab(ft.Container):
         if initial_uni:
             self._build_grid(initial_uni, is_initial=True)
 
-    def _load_posters(self, title_str, img_container):
-        det = self.api.fetch_show_details(title_str)
-        if det and det.get("image_url"):
-            img_container.content = ft.Image(src=det.get("image_url"), fit="contain")
-            try:
-                if img_container.page:
-                    img_container.update()
-            except Exception:
-                pass
+    def did_mount(self):
+        if self._pending_posters:
+            self.page.run_task(self._load_pending_posters)
+
+    async def _load_pending_posters(self):
+        pending = list(self._pending_posters)
+        self._pending_posters.clear()
+
+        results = await asyncio.gather(
+            *[asyncio.to_thread(self.api.fetch_show_details, title) for title, _, _, _ in pending]
+        )
+
+        for (title_str, ring, img, icon), det in zip(pending, results):
+            ring.visible = False
+            if det and det.get("image_url"):
+                img.src = det["image_url"]
+                img.visible = True
+            else:
+                icon.visible = True
+
+        self.update()
 
     def _build_grid(self, uni, is_initial=False):
         new_cards = []
-        pending_downloads = []
-        
+        self._pending_posters = []
         timeline_data = self.db.load_timeline()
-        
+
         for item in timeline_data.get(uni, []):
             title = item if isinstance(item, str) else item.get("title", "")
-            
-            img_container = ft.Container(width=120, height=180, bgcolor="#333333", border_radius=10)
-            
+            cached_det = self.api._cache.get(title)
+
+            ring = ft.ProgressRing(width=30, height=30, stroke_width=3, color="amber")
+            img = ft.Image(src="", fit="contain", width=120, height=180, visible=False)
+            icon = ft.Text("🎬", size=35, color="white54", visible=False)
+
+            if cached_det:
+                ring.visible = False
+                if cached_det.get("image_url"):
+                    img.src = cached_det.get("image_url")
+                    img.visible = True
+                else:
+                    icon.visible = True
+            else:
+                self._pending_posters.append((title, ring, img, icon))
+
+            stack = ft.Stack(
+                controls=[
+                    ft.Container(ring, alignment=ft.Alignment(0, 0), width=120, height=180),
+                    img,
+                    ft.Container(icon, alignment=ft.Alignment(0, 0), width=120, height=180)
+                ]
+            )
+
+            img_container = ft.Container(
+                width=120, height=180, bgcolor="#333333", border_radius=10,
+                content=stack
+            )
+
             card = ft.Container(
                 content=ft.Column([
                     img_container,
                     ft.Text(
-                        title, 
-                        weight="bold", 
+                        title,
+                        weight="bold",
                         text_align="center",
                         size=13,
-                        max_lines=2, 
+                        max_lines=2,
                         overflow=ft.TextOverflow.ELLIPSIS
                     )
                 ], horizontal_alignment="center"),
                 on_click=lambda e, s=title: self.switch_func(0, s)
             )
             new_cards.append(card)
-            pending_downloads.append((title, img_container))
-            
+
         self.grid.controls = new_cards
-        
+
         if not is_initial:
-            if self.grid.page:
-                self.grid.update()
-                
-        for title_str, img_cont in pending_downloads:
-            threading.Thread(target=self._load_posters, args=(title_str, img_cont), daemon=True).start()
+            self.update()
+            if self._pending_posters:
+                self.page.run_task(self._load_pending_posters)
 
     def _handle_dropdown_select(self, e):
-        e.control.value = e.data
-        if e.control.page:
-            e.control.update()
-            
-        self._build_grid(e.data, is_initial=False)
+        if e:
+            e.control.value = e.data
+        self._build_grid(self.uni_drop.value, is_initial=False)

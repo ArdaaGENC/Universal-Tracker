@@ -7,6 +7,7 @@ class APIClient:
         load_dotenv()
         self._omdb_api_key = os.getenv("OMDB_API_KEY")
         self._db_manager = db_manager
+        self._cache = {}
 
     def _get_show_metadata(self, show_name):
         db = self._db_manager.load_timeline()
@@ -21,14 +22,25 @@ class APIClient:
         return "show", ""
 
     def fetch_show_details(self, show_name):
+        if show_name in self._cache:
+            return self._cache[show_name]
+
         clean_name = show_name.replace(" (Film)", "")
         show_type, release_year = self._get_show_metadata(clean_name)
         is_movie = (show_type == "movie")
         
+        result = None
+        
         if release_year or is_movie:
             omdb_type = "movie" if is_movie else "series"
             result = self._fetch_from_omdb(clean_name, release_year, omdb_type)
-            if result.get("image_url"): return result
+            if result and result.get("image_url"):
+                self._cache[show_name] = result
+                return result
+
+        if is_movie:
+            self._cache[show_name] = result if result else {"text": "Movie not found", "image_url": None}
+            return self._cache[show_name]
 
         tvmaze_url = f"https://api.tvmaze.com/singlesearch/shows?q={clean_name}"
         try:
@@ -36,11 +48,15 @@ class APIClient:
             if response.status_code == 200:
                 data = response.json()
                 if data.get("image"):
-                    return self._format_tvmaze_data(data)
+                    result = self._format_tvmaze_data(data)
+                    self._cache[show_name] = result
+                    return result
         except:
             pass
 
-        return self._fetch_from_omdb(clean_name, "", "movie" if is_movie else "series")
+        result = self._fetch_from_omdb(clean_name, "", "series")
+        self._cache[show_name] = result
+        return result
 
     def _fetch_from_omdb(self, show_name, year="", type_filter=""):
         if not self._omdb_api_key:
@@ -54,7 +70,7 @@ class APIClient:
             res = requests.get(omdb_url)
             data = res.json()
             if data.get("Response") == "True":
-                 return{
+                 return {
                     "text": f"Rating: {data.get('imdbRating', 'N/A')}/10 | Year: {data.get('Year', 'N/A')} ({'Movie' if type_filter == 'movie' else 'Show'})",
                     "image_url": data.get("Poster") if data.get("Poster") != "N/A" else None
                  }
