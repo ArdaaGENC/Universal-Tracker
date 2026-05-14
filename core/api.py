@@ -7,13 +7,13 @@ from dotenv import load_dotenv
 class APIClient:
     def __init__(self, db_manager):
         load_dotenv()
+        self._tmdb_api_key = os.getenv("TMDB_API_KEY")
         self._omdb_api_key = os.getenv("OMDB_API_KEY")
         self._db_manager = db_manager
         
         self._cache = {}
         self._cache_file = os.path.join("data", "api_cache.json")
         self._posters_dir = os.path.join("data", "posters")
-        
         os.makedirs(self._posters_dir, exist_ok=True)
         self._persistent_cache = self._load_cache()
 
@@ -24,11 +24,7 @@ class APIClient:
                     return json.load(f)
             except: pass
         return {}
-
-    def _save_cache(self):
-        with open(self._cache_file, "w", encoding="utf-8") as f:
-            json.dump(self._persistent_cache, f, indent=4)
-
+    
     def _get_show_metadata(self, show_name):
         db = self._db_manager.load_timeline()
         for universe, shows in db.items():
@@ -42,81 +38,89 @@ class APIClient:
         return "show", ""
 
     def fetch_show_details(self, show_name):
-        if show_name in self._cache:
+        if show_name in self._cache and self._cache[show_name].get("image_url"):
             return self._cache[show_name]
 
         if show_name in self._persistent_cache:
-            self._cache[show_name] = self._persistent_cache[show_name]
-            return self._cache[show_name]
+            data = self._persistent_cache[show_name]
+            if data.get("image_url"):
+                self._cache[show_name] = data
+                return data
 
         clean_name = show_name.replace(" (Film)", "")
+        
         show_type, release_year = self._get_show_metadata(clean_name)
         is_movie = (show_type == "movie")
         
-        result = None
+        result = self._fetch_from_tmdb(clean_name, is_movie, release_year)
         
-        if release_year or is_movie:
+        if not result or not result.get("image_url"):
             omdb_type = "movie" if is_movie else "series"
             result = self._fetch_from_omdb(clean_name, release_year, omdb_type)
-            
-        if is_movie:
-            if not result: result = {"text": "Movie not found", "image_url": None}
-        else:
-            if not result or not result.get("image_url"):
-                tvmaze_url = f"https://api.tvmaze.com/singlesearch/shows?q={clean_name}"
-                try:
-                    response = requests.get(tvmaze_url)
-                    if response.status_code == 200:
-                        data = response.json()
-                        if data.get("image"):
-                            result = self._format_tvmaze_data(data)
-                except: pass
-            if not result:
-                result = self._fetch_from_omdb(clean_name, "", "series")
-                
-        if not result:
-            result = {"text": "Show not found", "image_url": None}
 
-        if result.get("image_url"):
-            safe_name = re.sub(r'[\\/*?:"<>|]', "", clean_name)
-            local_path = os.path.abspath(os.path.join(self._posters_dir, f"{safe_name}.jpg"))
-            
-            try:
-                img_data = requests.get(result["image_url"]).content
-                with open(local_path, 'wb') as handler:
-                    handler.write(img_data)
-                result["local_image_path"] = local_path
-            except:
-                result["local_image_path"] = None
-        else:
-            result["local_image_path"] = None
+        if not result:
+            result = {"text": "Not found", "image_url": None, "local_image_path": None}
+
+        if result.get("image_url") and not result.get("local_image_path"):
+            result = self._download_poster(clean_name, result)
 
         self._cache[show_name] = result
         self._persistent_cache[show_name] = result
         self._save_cache()
-        
         return result
 
-    def _fetch_from_omdb(self, show_name, year="", type_filter=""):
-        if not self._omdb_api_key: return None
-        omdb_url = f"http://www.omdbapi.com/?t={show_name}&apikey={self._omdb_api_key}"
-        if year: omdb_url += f"&y={year}"
-        if type_filter: omdb_url += f"&type={type_filter}"
+    def _fetch_from_tmdb(self, name, is_movie=False, year=""):
+        if not self._tmdb_api_key: return None
+        
+        search_type = "movie" if is_movie else "multi"
+        url = f"https://api.themoviedb.org/3/search/{search_type}?api_key={self._tmdb_api_key}&query={name}"
+        
+        if year and is_movie:
+            url += f"&primary_release_year={year}"
+        elif year and not is_movie:
+            url += f"&first_air_date_year={year}"
+
         try:
-            res = requests.get(omdb_url)
-            data = res.json()
-            if data.get("Response") == "True":
-                 return {
-                    "text": f"Rating: {data.get('imdbRating', 'N/A')}/10 | Year: {data.get('Year', 'N/A')} ({'Movie' if type_filter == 'movie' else 'Show'})",
-                    "image_url": data.get("Poster") if data.get("Poster") != "N/A" else None
-                 }
+            res = requests.get(url).json()
+            if res.get("results"):
+                item = res["results"][0]
+                poster_path = item.get("poster_path")
+                m_type = item.get("media_type", search_type) 
+                return {
+                    "tmdb_id": item.get("id"),
+                    "media_type": m_type,
+                    "text": f"Rating: {item.get('vote_average', 'N/A')}/10",
+                    "image_url": f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+                }
         except: pass
         return None
 
-    def _format_tvmaze_data(self, data):
-         premiered = data.get("premiered", "N/A")
-         year = premiered.split("-")[0] if premiered and premiered != "N/A" else "N/A"
-         return {
-            "text": f"Rating: {data.get('rating', {}).get('average', 'N/A')}/10 | Year: {year} (Show)",
-            "image_url": data["image"].get("medium") if data.get("image") else None
-         }
+    def get_recommendations(self, tmdb_id, media_type="movie"):
+        """Seçilen yapıma benzer 5 öneri getirir."""
+        if not tmdb_id or not self._tmdb_api_key: return []
+        url = f"https://api.themoviedb.org/3/{media_type}/{tmdb_id}/recommendations?api_key={self._tmdb_api_key}"
+        try:
+            res = requests.get(url).json()
+            recs = []
+            for item in res.get("results", [])[:5]:
+                recs.append({
+                    "title": item.get("title") or item.get("name"),
+                    "image": f"https://image.tmdb.org/t/p/w200{item.get('poster_path')}" if item.get("poster_path") else None
+                })
+            return recs
+        except: return []
+
+    def _download_poster(self, name, result):
+        safe_name = re.sub(r'[\\/*?:"<>|]', "", name)
+        local_path = os.path.join(self._posters_dir, f"{safe_name}.jpg")
+        try:
+            img_data = requests.get(result["image_url"]).content
+            with open(local_path, 'wb') as f:
+                f.write(img_data)
+            result["local_image_path"] = local_path
+        except: pass
+        return result
+
+    def _save_cache(self):
+        with open(self._cache_file, "w", encoding="utf-8") as f:
+            json.dump(self._persistent_cache, f, indent=4)
