@@ -1,5 +1,18 @@
 import flet as ft
 
+class HoverContainer(ft.Container):
+    def __init__(self, content):
+        super().__init__()
+        self.content = content
+        self.shape = ft.BoxShape.CIRCLE
+        self.bgcolor = ft.Colors.TRANSPARENT
+        self.animate_color = 300
+        self.on_hover = self._handle_hover
+
+    def _handle_hover(self, e):
+        self.bgcolor = ft.Colors.with_opacity(0.15, ft.Colors.WHITE) if e.data == "true" else ft.Colors.TRANSPARENT
+        self.update()
+
 class TrackerTab(ft.Container):
     def __init__(self, switch_func, db, api, auto_select_show=None):
         super().__init__()
@@ -55,7 +68,25 @@ class TrackerTab(ft.Container):
         
         filter_sort_row = ft.Row([self.filter_drop, self.sort_drop], alignment=ft.MainAxisAlignment.CENTER, spacing=20)
         self.show_drop = ft.Dropdown(width=400, label="Last Watched / Current Show", on_select=self._on_show_change)
-        self.poster = ft.Image(src="", width=170, height=240, fit=ft.BoxFit.CONTAIN, visible=False)
+        
+        self.poster_img = ft.Image(src="", width=170, height=240, fit=ft.BoxFit.COVER, border_radius=10, visible=False)
+        self.main_fav_btn = ft.IconButton(
+            icon=ft.Icons.FAVORITE_BORDER,
+            icon_color=ft.Colors.WHITE,
+            icon_size=25,
+            on_click=self._toggle_main_fav
+        )
+        
+        self.main_fav_wrapper = HoverContainer(content=self.main_fav_btn)
+        self.main_fav_wrapper.visible = False
+        
+        self.poster_stack = ft.Stack(
+            controls=[
+                self.poster_img,
+                ft.Container(self.main_fav_wrapper, alignment=ft.Alignment(1, -1))
+            ],
+            width=170, height=240
+        )
         
         self.recommendations_container = ft.Container()
 
@@ -64,7 +95,7 @@ class TrackerTab(ft.Container):
             self.uni_drop,     
             filter_sort_row,   
             self.show_drop,    
-            self.poster,
+            self.poster_stack,
             self.recommendations_container 
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15, scroll=ft.ScrollMode.ADAPTIVE)
 
@@ -110,6 +141,32 @@ class TrackerTab(ft.Container):
         if e: e.control.value = e.data
         self.db.save_progress(self.uni_drop.value, self.show_drop.value)
         self._update_dashboard(is_initial=False)
+
+    def _toggle_main_fav(self, e):
+        title = self.show_drop.value
+        uni = self.uni_drop.value
+        timeline_data = self.db.load_timeline()
+        raw_shows = timeline_data.get(uni, [])
+        item_type = "show"
+        
+        for item in raw_shows:
+            if isinstance(item, dict) and item.get("title") == title:
+                item_type = item.get("type", "show")
+                break
+            elif isinstance(item, str) and title in item:
+                item_type = "movie" if "(Film)" in item else "show"
+                break
+                
+        is_fav = self.db.toggle_favorite(title, item_type, uni)
+        self.main_fav_btn.icon = ft.Icons.FAVORITE if is_fav else ft.Icons.FAVORITE_BORDER
+        self.main_fav_btn.icon_color = ft.Colors.RED if is_fav else ft.Colors.WHITE
+        self.update()
+
+    def _toggle_rec_fav(self, e, title, item_type):
+        is_fav = self.db.toggle_favorite(title, item_type, "Unknown")
+        e.control.icon = ft.Icons.FAVORITE if is_fav else ft.Icons.FAVORITE_BORDER
+        e.control.icon_color = ft.Colors.RED if is_fav else ft.Colors.WHITE
+        self.update()
 
     def _update_dashboard(self, is_initial=False):
         current_uni = self.uni_drop.value
@@ -157,17 +214,25 @@ class TrackerTab(ft.Container):
 
         if self.show_drop.value:
             det = self.api.fetch_show_details(self.show_drop.value)
+            is_fav = self.db.is_favorite(self.show_drop.value)
+            
+            self.main_fav_btn.icon = ft.Icons.FAVORITE if is_fav else ft.Icons.FAVORITE_BORDER
+            self.main_fav_btn.icon_color = ft.Colors.RED if is_fav else ft.Colors.WHITE
+            self.main_fav_wrapper.visible = True
+            
             if det and det.get("image_url"):
-                self.poster.src = det.get("image_url")
-                self.poster.visible = True
+                self.poster_img.src = det.get("image_url")
+                self.poster_img.visible = True
             else:
-                self.poster.visible = False
+                self.poster_img.visible = False
                 
             tmdb_id = det.get("tmdb_id")
             media_type = det.get("media_type", "movie")
             self.recommendations_container.content = self._build_recommendations_ui(tmdb_id, media_type)
         else:
             self.recommendations_container.content = ft.Container()
+            self.main_fav_wrapper.visible = False
+            self.poster_img.visible = False
 
         if not is_initial:
             try:
@@ -185,21 +250,37 @@ class TrackerTab(ft.Container):
         for rec in recs:
             img_src = rec.get("image")
             title = rec.get("title")
+            rec_type = rec.get("type", "movie")
+            is_fav = self.db.is_favorite(title)
+            
+            fav_btn = ft.IconButton(
+                icon=ft.Icons.FAVORITE if is_fav else ft.Icons.FAVORITE_BORDER,
+                icon_color=ft.Colors.RED if is_fav else ft.Colors.WHITE,
+                icon_size=16,
+                on_click=lambda e, t=title, typ=rec_type: self._toggle_rec_fav(e, t, typ)
+            )
+            
+            fav_hover = HoverContainer(content=fav_btn)
             
             card = ft.Container(
                 content=ft.Column(
                     controls=[
-                        ft.Image(
-                            src=img_src, 
-                            width=100, 
-                            height=150, 
-                            fit=ft.BoxFit.COVER, 
-                            border_radius=8
-                        ) if img_src else ft.Container(
-                            width=100, 
-                            height=150, 
-                            bgcolor=ft.Colors.SURFACE_VARIANT, 
-                            border_radius=8
+                        ft.Stack(
+                            controls=[
+                                ft.Image(
+                                    src=img_src, 
+                                    width=100, 
+                                    height=150, 
+                                    fit=ft.BoxFit.COVER, 
+                                    border_radius=8
+                                ) if img_src else ft.Container(
+                                    width=100, 
+                                    height=150, 
+                                    bgcolor=ft.Colors.SURFACE_VARIANT, 
+                                    border_radius=8
+                                ),
+                                ft.Container(fav_hover, alignment=ft.Alignment(1, -1))
+                            ]
                         ),
                         ft.Text(
                             title, 

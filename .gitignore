@@ -1,6 +1,7 @@
 __pycache__/
 data/progress.json
 data/api_cache.json
+data/favorites.json
 data/posters/
 build/
 dist/

@@ -1,5 +1,5 @@
 {
-  "DCAU Evreni": [
+  "DCAU Universe": [
     { "title": "Batman: The Animated Series", "type": "show", "chrono": 1, "release": 1992, "runtime_min": 1870 },
     { "title": "Batman: Mask of the Phantasm", "type": "movie", "chrono": 2, "release": 1993, "runtime_min": 76 },
     { "title": "Superman: The Animated Series", "type": "show", "chrono": 3, "release": 1996, "runtime_min": 1188 },
@@ -15,7 +15,7 @@
     { "title": "Batman and Harley Quinn", "type": "movie", "chrono": 13, "release": 2017, "runtime_min": 74 },
     { "title": "Justice League vs. the Fatal Five", "type": "movie", "chrono": 14, "release": 2019, "runtime_min": 77 }
   ],
-  "Miyazaki Maratonu": [
+  "Miyazaki Marathon": [
     { "title": "The Castle of Cagliostro", "type": "movie", "chrono": 1, "release": 1979, "runtime_min": 100 },
     { "title": "Nausicaä of the Valley of the Wind", "type": "movie", "chrono": 2, "release": 1984, "runtime_min": 117 },
     { "title": "Castle in the Sky", "type": "movie", "chrono": 3, "release": 1986, "runtime_min": 125 },
@@ -29,7 +29,7 @@
     { "title": "The Wind Rises", "type": "movie", "chrono": 11, "release": 2013, "runtime_min": 126 },
     { "title": "The Boy and the Heron", "type": "movie", "chrono": 12, "release": 2023, "runtime_min": 124 }
   ],
-  "Marvel Evreni": [
+  "Marvel Universe": [
     { "title": "Captain America: The First Avenger", "type": "movie", "chrono": 1, "release": 2011, "runtime_min": 124 },
     { "title": "Agent Carter", "type": "show", "chrono": 2, "release": 2015, "runtime_min": 756 },
     { "title": "Captain Marvel", "type": "movie", "chrono": 3, "release": 2019, "runtime_min": 123 },

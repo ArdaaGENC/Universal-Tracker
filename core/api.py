@@ -96,7 +96,6 @@ class APIClient:
         return None
 
     def get_recommendations(self, tmdb_id, media_type="movie"):
-        """Seçilen yapıma benzer 5 öneri getirir."""
         if not tmdb_id or not self._tmdb_api_key: return []
         url = f"https://api.themoviedb.org/3/{media_type}/{tmdb_id}/recommendations?api_key={self._tmdb_api_key}"
         try:
@@ -105,7 +104,8 @@ class APIClient:
             for item in res.get("results", [])[:5]:
                 recs.append({
                     "title": item.get("title") or item.get("name"),
-                    "image": f"https://image.tmdb.org/t/p/w200{item.get('poster_path')}" if item.get("poster_path") else None
+                    "image": f"https://image.tmdb.org/t/p/w200{item.get('poster_path')}" if item.get("poster_path") else None,
+                    "type": item.get("media_type", media_type)
                 })
             return recs
         except: return []

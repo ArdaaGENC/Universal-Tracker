@@ -5,6 +5,7 @@ class DatabaseManager:
     def __init__(self):
         self._timeline_file = os.path.join("data", "timeline.json")
         self._progress_file = os.path.join("data", "progress.json")
+        self._favorites_file = os.path.join("data", "favorites.json")
 
     def load_timeline(self):
         try:
@@ -26,6 +27,32 @@ class DatabaseManager:
         os.makedirs("data", exist_ok=True)
         with open(self._progress_file, "w", encoding="utf-8") as f:
             json.dump(progress_data, f, indent=4)
+
+    def load_favorites(self):
+        if os.path.exists(self._favorites_file):
+            with open(self._favorites_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
+
+    def save_favorites(self, fav_data):
+        os.makedirs("data", exist_ok=True)
+        with open(self._favorites_file, "w", encoding="utf-8") as f:
+            json.dump(fav_data, f, indent=4)
+
+    def toggle_favorite(self, title, item_type, universe):
+        favs = self.load_favorites()
+        if title in favs:
+            del favs[title]
+            is_fav = False
+        else:
+            favs[title] = {"title": title, "type": item_type, "universe": universe}
+            is_fav = True
+        self.save_favorites(favs)
+        return is_fav
+
+    def is_favorite(self, title):
+        favs = self.load_favorites()
+        return title in favs
 
     def get_dynamic_stats(self, processed_list, current_show):
         total_items = len(processed_list)
