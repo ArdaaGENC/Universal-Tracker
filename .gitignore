@@ -6,4 +6,5 @@ data/posters/
 build/
 dist/
 *.spec
+*.db
 .env

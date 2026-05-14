@@ -110,6 +110,31 @@ class APIClient:
             return recs
         except: return []
 
+    def search_tmdb_query(self, query):
+        if not self._tmdb_api_key: return []
+        url = f"https://api.themoviedb.org/3/search/multi?api_key={self._tmdb_api_key}&query={query}"
+        try:
+            res = requests.get(url).json()
+            results = []
+            for item in res.get("results", [])[:10]:
+                media_type = item.get("media_type")
+                if media_type not in ["movie", "tv"]:
+                    continue
+                poster_path = item.get("poster_path")
+                release_date = item.get("release_date") or item.get("first_air_date") or ""
+                year = release_date.split("-")[0] if release_date else ""
+                title = item.get("title") or item.get("name")
+                
+                results.append({
+                    "tmdb_id": item.get("id"),
+                    "title": title,
+                    "type": media_type,
+                    "year": year,
+                    "image": f"https://image.tmdb.org/t/p/w200{poster_path}" if poster_path else None
+                })
+            return results
+        except: return []
+
     def _download_poster(self, name, result):
         safe_name = re.sub(r'[\\/*?:"<>|]', "", name)
         local_path = os.path.join(self._posters_dir, f"{safe_name}.jpg")
