@@ -8,13 +8,14 @@ class TrackerTab(ft.Container):
         self.api = api 
         self.alignment = ft.Alignment(0, 0)
         self.padding = 30
+        self.expand = True
 
-        self.progress_ring = ft.ProgressRing(value=0, stroke_width=8, width=90, height=90, color="amber")
-        self.progress_text = ft.Text("0%", size=18, weight="bold")
+        self.progress_ring = ft.ProgressRing(value=0, stroke_width=8, width=90, height=90, color=ft.Colors.AMBER)
+        self.progress_text = ft.Text("0%", size=18, weight=ft.FontWeight.BOLD)
         
-        self.stat_watched = ft.Text("Watched: 0 / 0", size=15, weight="bold")
-        self.stat_remaining = ft.Text("Remaining Shows: 0", size=14, color="white70")
-        self.stat_time = ft.Text("Remaining Time: 0 Hours 0 Mins", size=14, color="green")
+        self.stat_watched = ft.Text("Watched: 0 / 0", size=15, weight=ft.FontWeight.BOLD)
+        self.stat_remaining = ft.Text("Remaining Shows: 0", size=14, color=ft.Colors.WHITE70)
+        self.stat_time = ft.Text("Remaining Time: 0 Hours 0 Mins", size=14, color=ft.Colors.GREEN)
 
         ring_stack = ft.Stack([
             self.progress_ring,
@@ -54,15 +55,18 @@ class TrackerTab(ft.Container):
         
         filter_sort_row = ft.Row([self.filter_drop, self.sort_drop], alignment=ft.MainAxisAlignment.CENTER, spacing=20)
         self.show_drop = ft.Dropdown(width=400, label="Last Watched / Current Show", on_select=self._on_show_change)
-        self.poster = ft.Image(src="", width=170, height=240, fit="contain", visible=False)
+        self.poster = ft.Image(src="", width=170, height=240, fit=ft.BoxFit.CONTAIN, visible=False)
+        
+        self.recommendations_container = ft.Container()
 
         self.content = ft.Column([
             stats_panel,       
             self.uni_drop,     
             filter_sort_row,   
             self.show_drop,    
-            self.poster        
-        ], horizontal_alignment="center", spacing=15)
+            self.poster,
+            self.recommendations_container 
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=15, scroll=ft.ScrollMode.ADAPTIVE)
 
         self._init_data(auto_select_show)
 
@@ -158,8 +162,66 @@ class TrackerTab(ft.Container):
                 self.poster.visible = True
             else:
                 self.poster.visible = False
+                
+            tmdb_id = det.get("tmdb_id")
+            media_type = det.get("media_type", "movie")
+            self.recommendations_container.content = self._build_recommendations_ui(tmdb_id, media_type)
+        else:
+            self.recommendations_container.content = ft.Container()
 
         if not is_initial:
             try:
                 if self.page: self.page.update()
             except Exception: pass
+
+    def _build_recommendations_ui(self, tmdb_id, media_type):
+        recs = self.api.get_recommendations(tmdb_id, media_type)
+        
+        if not recs:
+            return ft.Container() 
+
+        rec_row = ft.Row(scroll=ft.ScrollMode.ADAPTIVE, spacing=15)
+        
+        for rec in recs:
+            img_src = rec.get("image")
+            title = rec.get("title")
+            
+            card = ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Image(
+                            src=img_src, 
+                            width=100, 
+                            height=150, 
+                            fit=ft.BoxFit.COVER, 
+                            border_radius=8
+                        ) if img_src else ft.Container(
+                            width=100, 
+                            height=150, 
+                            bgcolor=ft.Colors.SURFACE_VARIANT, 
+                            border_radius=8
+                        ),
+                        ft.Text(
+                            title, 
+                            size=12, 
+                            text_align=ft.TextAlign.CENTER, 
+                            max_lines=2, 
+                            width=100,
+                            overflow=ft.TextOverflow.ELLIPSIS
+                        )
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=5
+                ),
+                tooltip=title
+            )
+            rec_row.controls.append(card)
+
+        return ft.Column(
+            controls=[
+                ft.Divider(height=20, color=ft.Colors.OUTLINE_VARIANT),
+                ft.Text("Similar Shows", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE),
+                rec_row
+            ],
+            spacing=10
+        )
