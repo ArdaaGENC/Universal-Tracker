@@ -79,6 +79,7 @@ class LibraryTab(ft.Container):
                 universe=uni,
                 is_fav=self.state.db.is_favorite(title),
                 score=self.state.db.get_rating(title),
+                is_watchlist=self.state.db.is_watchlist(title),
                 width=120,
                 height=180,
                 initial_img_src=cached_det.get("local_image_path") or cached_det.get("image_url") if cached_det else None,

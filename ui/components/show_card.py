@@ -43,7 +43,7 @@ class ShimmerSkeleton(ft.Container):
             await asyncio.sleep(0.8)
 
 class ShowCard(ft.Container):
-    def __init__(self, state, title, item_type, universe, is_fav, score, width, height, tmdb_id=None, initial_img_src=None, show_skeleton=True):
+    def __init__(self, state, title, item_type, universe, is_fav, score, is_watchlist, width, height, tmdb_id=None, initial_img_src=None, show_skeleton=True):
         super().__init__()
         self.state = state
         self.title_text = title
@@ -67,6 +67,14 @@ class ShowCard(ft.Container):
             on_click=self._toggle_fav
         )
         fav_hover = HoverContainer(content=fav_btn, right=0, top=0)
+
+        watch_btn = ft.IconButton(
+            icon=ft.Icons.BOOKMARK if is_watchlist else ft.Icons.BOOKMARK_BORDER,
+            icon_color=ft.Colors.BLUE if is_watchlist else ft.Colors.WHITE,
+            icon_size=max(16, int(width * 0.16)),
+            on_click=self._toggle_watchlist
+        )
+        watch_hover = HoverContainer(content=watch_btn, right=0, top=int(width * 0.25))
 
         rate_btn = ft.PopupMenuButton(
             icon=ft.Icons.STAR if score > 0 else ft.Icons.STAR_BORDER,
@@ -108,6 +116,7 @@ class ShowCard(ft.Container):
                     self.img,
                     self.icon,
                     fav_hover,
+                    watch_hover,
                     rate_hover,
                     rate_badge,
                     ctx_menu
@@ -137,6 +146,10 @@ class ShowCard(ft.Container):
 
     def _toggle_fav(self, e):
         self.state.db.toggle_favorite(self.title_text, self.item_type, self.universe)
+        self.state.refresh_data()
+
+    def _toggle_watchlist(self, e):
+        self.state.db.toggle_watchlist(self.title_text, self.item_type, self.universe)
         self.state.refresh_data()
 
     def _on_rate(self, e):

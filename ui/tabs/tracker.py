@@ -68,6 +68,15 @@ class TrackerTab(ft.Container):
         self.main_fav_wrapper = HoverContainer(content=self.main_fav_btn, right=5, top=5)
         self.main_fav_wrapper.visible = False
 
+        self.main_watch_btn = ft.IconButton(
+            icon=ft.Icons.BOOKMARK_BORDER,
+            icon_color=ft.Colors.WHITE,
+            icon_size=25,
+            on_click=self._toggle_main_watchlist
+        )
+        self.main_watch_wrapper = HoverContainer(content=self.main_watch_btn, right=5, top=45)
+        self.main_watch_wrapper.visible = False
+
         self.main_rate_btn = ft.PopupMenuButton(
             icon=ft.Icons.STAR_BORDER,
             icon_color=ft.Colors.WHITE,
@@ -107,6 +116,7 @@ class TrackerTab(ft.Container):
                 controls=[
                     self.poster_img,
                     self.main_fav_wrapper,
+                    self.main_watch_wrapper,
                     self.main_rate_wrapper,
                     self.rate_badge,
                     self.main_ctx_menu
@@ -187,6 +197,24 @@ class TrackerTab(ft.Container):
         self.state.db.toggle_favorite(title, item_type, uni)
         self.state.refresh_data()
 
+    def _toggle_main_watchlist(self, e):
+        title = self.show_drop.value
+        uni = self.uni_drop.value
+        timeline_data = self.state.db.load_timeline()
+        raw_shows = timeline_data.get(uni, [])
+        item_type = "show"
+        
+        for item in raw_shows:
+            if isinstance(item, dict) and item.get("title") == title:
+                item_type = item.get("type", "show")
+                break
+            elif isinstance(item, str) and title in item:
+                item_type = "movie" if "(Film)" in item else "show"
+                break
+                
+        self.state.db.toggle_watchlist(title, item_type, uni)
+        self.state.refresh_data()
+
     def _on_rate_change(self, e):
         score = e.control.data
         title = self.show_drop.value
@@ -263,11 +291,16 @@ class TrackerTab(ft.Container):
         if self.show_drop.value:
             det = self.state.api.fetch_show_details(self.show_drop.value)
             is_fav = self.state.db.is_favorite(self.show_drop.value)
+            is_watchlist = self.state.db.is_watchlist(self.show_drop.value)
             score = self.state.db.get_rating(self.show_drop.value)
             
             self.main_fav_btn.icon = ft.Icons.FAVORITE if is_fav else ft.Icons.FAVORITE_BORDER
             self.main_fav_btn.icon_color = ft.Colors.RED if is_fav else ft.Colors.WHITE
             self.main_fav_wrapper.visible = True
+
+            self.main_watch_btn.icon = ft.Icons.BOOKMARK if is_watchlist else ft.Icons.BOOKMARK_BORDER
+            self.main_watch_btn.icon_color = ft.Colors.BLUE if is_watchlist else ft.Colors.WHITE
+            self.main_watch_wrapper.visible = True
 
             self.main_rate_wrapper.visible = True
             if score > 0:
@@ -292,6 +325,7 @@ class TrackerTab(ft.Container):
         else:
             self.recommendations_container.content = ft.Container()
             self.main_fav_wrapper.visible = False
+            self.main_watch_wrapper.visible = False
             self.main_rate_wrapper.visible = False
             self.rate_badge.visible = False
             self.poster_img.visible = False
@@ -319,6 +353,7 @@ class TrackerTab(ft.Container):
                 universe="Unknown",
                 is_fav=self.state.db.is_favorite(title),
                 score=self.state.db.get_rating(title),
+                is_watchlist=self.state.db.is_watchlist(title),
                 width=100,
                 height=150,
                 tmdb_id=rec.get("tmdb_id") or rec.get("id"),

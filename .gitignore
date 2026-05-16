@@ -1,10 +1,10 @@
 __pycache__/
-data/progress.json
+*.pyc
+.env
+data/tracker.db
 data/api_cache.json
-data/favorites.json
 data/posters/
+*.db
 build/
 dist/
 *.spec
-*.db
-.env

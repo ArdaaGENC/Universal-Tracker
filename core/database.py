@@ -1,5 +1,4 @@
 import sqlite3
-import json
 import os
 
 class DatabaseManager:
@@ -7,7 +6,6 @@ class DatabaseManager:
         os.makedirs("data", exist_ok=True)
         self.db_path = os.path.join("data", "tracker.db")
         self._init_db()
-        self._auto_migrate()
 
     def _get_connection(self):
         return sqlite3.connect(self.db_path)
@@ -20,45 +18,8 @@ class DatabaseManager:
             c.execute("CREATE TABLE IF NOT EXISTS progress (universe_name TEXT PRIMARY KEY, show_title TEXT)")
             c.execute("CREATE TABLE IF NOT EXISTS favorites (title TEXT PRIMARY KEY, type TEXT, universe TEXT)")
             c.execute("CREATE TABLE IF NOT EXISTS ratings (title TEXT PRIMARY KEY, score INTEGER)")
+            c.execute("CREATE TABLE IF NOT EXISTS watchlist (title TEXT PRIMARY KEY, type TEXT, universe TEXT)")
             conn.commit()
-
-    def _auto_migrate(self):
-        timeline_file = os.path.join("data", "timeline.json")
-        progress_file = os.path.join("data", "progress.json")
-        favorites_file = os.path.join("data", "favorites.json")
-
-        with self._get_connection() as conn:
-            c = conn.cursor()
-            c.execute("SELECT COUNT(*) FROM universes")
-            if c.fetchone()[0] == 0 and os.path.exists(timeline_file):
-                with open(timeline_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    for uni, shows in data.items():
-                        c.execute("INSERT OR IGNORE INTO universes (name) VALUES (?)", (uni,))
-                        c.execute("SELECT id FROM universes WHERE name = ?", (uni,))
-                        uni_id = c.fetchone()[0]
-                        for s in shows:
-                            if isinstance(s, dict):
-                                c.execute("INSERT INTO shows (universe_id, title, type, chrono, release, runtime_min) VALUES (?, ?, ?, ?, ?, ?)",
-                                          (uni_id, s.get("title"), s.get("type", "show"), s.get("chrono", 0), s.get("release", 0), s.get("runtime_min", 0)))
-                            else:
-                                t = "movie" if "(Film)" in s else "show"
-                                c.execute("INSERT INTO shows (universe_id, title, type, chrono, release, runtime_min) VALUES (?, ?, ?, ?, ?, ?)",
-                                          (uni_id, s, t, 0, 0, 0))
-
-                if os.path.exists(progress_file):
-                    with open(progress_file, "r", encoding="utf-8") as f:
-                        prog_data = json.load(f)
-                        for u, s in prog_data.items():
-                            c.execute("INSERT OR REPLACE INTO progress (universe_name, show_title) VALUES (?, ?)", (u, s))
-
-                if os.path.exists(favorites_file):
-                    with open(favorites_file, "r", encoding="utf-8") as f:
-                        fav_data = json.load(f)
-                        for title, details in fav_data.items():
-                            c.execute("INSERT OR REPLACE INTO favorites (title, type, universe) VALUES (?, ?, ?)",
-                                      (title, details.get("type"), details.get("universe")))
-                conn.commit()
 
     def load_timeline(self):
         data = {}
@@ -121,6 +82,34 @@ class DatabaseManager:
         with self._get_connection() as conn:
             c = conn.cursor()
             c.execute("SELECT title FROM favorites WHERE title = ?", (title,))
+            return c.fetchone() is not None
+
+    def load_watchlist(self):
+        data = {}
+        with self._get_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT title, type, universe FROM watchlist")
+            for row in c.fetchall():
+                data[row[0]] = {"title": row[0], "type": row[1], "universe": row[2]}
+        return data
+
+    def toggle_watchlist(self, title, item_type, universe):
+        is_added = False
+        with self._get_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT title FROM watchlist WHERE title = ?", (title,))
+            if c.fetchone():
+                c.execute("DELETE FROM watchlist WHERE title = ?", (title,))
+            else:
+                c.execute("INSERT INTO watchlist (title, type, universe) VALUES (?, ?, ?)", (title, item_type, universe))
+                is_added = True
+            conn.commit()
+        return is_added
+
+    def is_watchlist(self, title):
+        with self._get_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT title FROM watchlist WHERE title = ?", (title,))
             return c.fetchone() is not None
 
     def get_rating(self, title):

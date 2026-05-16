@@ -2,7 +2,7 @@ import flet as ft
 import asyncio
 from ui.components.show_card import ShowCard
 
-class FavoritesTab(ft.Container):
+class WatchlistTab(ft.Container):
     def __init__(self, state):
         super().__init__()
         self.state = state
@@ -46,21 +46,21 @@ class FavoritesTab(ft.Container):
         self._build_view()
 
     def _build_view(self):
-        favs = self.state.db.load_favorites()
+        items = self.state.db.load_watchlist()
         timeline = self.state.db.load_timeline()
         self.content_col.controls.clear()
         self._pending_posters.clear()
 
         f_val = self.filter_drop.value
-        filtered_favs = {}
-        for k, v in favs.items():
+        filtered_items = {}
+        for k, v in items.items():
             current_uni = self._get_current_universe(k, timeline)
             v["universe"] = current_uni
             if f_val == "all" or v.get("type", "show") == f_val:
-                filtered_favs[k] = v
+                filtered_items[k] = v
 
-        if not filtered_favs:
-            self.content_col.controls.append(ft.Container(content=ft.Text("No favorites found.", color=ft.Colors.WHITE70, size=16), alignment=ft.Alignment(0, 0), expand=True))
+        if not filtered_items:
+            self.content_col.controls.append(ft.Container(content=ft.Text("Watchlist is empty.", color=ft.Colors.WHITE70, size=16), alignment=ft.Alignment(0, 0), expand=True))
             self.update()
             return
 
@@ -68,20 +68,20 @@ class FavoritesTab(ft.Container):
         
         if g_val == "none":
             grid = ft.GridView(max_extent=160, child_aspect_ratio=0.6, spacing=15, run_spacing=15)
-            for k, v in filtered_favs.items():
+            for k, v in filtered_items.items():
                 grid.controls.append(self._create_card(v))
             self.content_col.controls.append(grid)
         else:
             grouped = {}
-            for k, v in filtered_favs.items():
+            for k, v in filtered_items.items():
                 uni = v.get("universe", "Unknown")
                 if uni not in grouped: grouped[uni] = []
                 grouped[uni].append(v)
             
-            for uni, items in grouped.items():
+            for uni, items_list in grouped.items():
                 self.content_col.controls.append(ft.Text(uni, size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER))
                 grid = ft.GridView(max_extent=160, child_aspect_ratio=0.6, spacing=15, run_spacing=15)
-                for v in items:
+                for v in items_list:
                     grid.controls.append(self._create_card(v))
                 self.content_col.controls.append(grid)
 
@@ -106,9 +106,9 @@ class FavoritesTab(ft.Container):
             title=title,
             item_type=item.get("type", "show"),
             universe=item.get("universe", "Unknown"),
-            is_fav=True,
+            is_fav=self.state.db.is_favorite(title),
             score=self.state.db.get_rating(title),
-            is_watchlist=self.state.db.is_watchlist(title),
+            is_watchlist=True,
             width=120,
             height=180,
             initial_img_src=cached_det.get("local_image_path") or cached_det.get("image_url") if cached_det else None,

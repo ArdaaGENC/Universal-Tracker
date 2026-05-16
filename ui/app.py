@@ -5,6 +5,7 @@ from core.state import AppState
 from ui.tabs.tracker import TrackerTab
 from ui.tabs.library import LibraryTab
 from ui.tabs.favorites import FavoritesTab
+from ui.tabs.watchlist import WatchlistTab
 from ui.tabs.stats import StatsTab
 from ui.components.manager_modal import ManagerModalOverlay
 
@@ -27,22 +28,25 @@ def run():
         tracker_tab = TrackerTab(state)
         library_tab = LibraryTab(state)
         favorites_tab = FavoritesTab(state)
+        watchlist_tab = WatchlistTab(state)
         stats_tab = StatsTab(state)
 
-        main_content_area = ft.Column([tracker_tab, library_tab, favorites_tab, stats_tab], expand=True)
+        main_content_area = ft.Column([tracker_tab, library_tab, favorites_tab, watchlist_tab, stats_tab], expand=True)
 
         main_tab_buttons = [
             ft.Container(content=ft.Text("Tracker", weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER), data=0, padding=10, border=ft.Border(bottom=ft.BorderSide(2, ft.Colors.AMBER)), ink=True),
             ft.Container(content=ft.Text("Library", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE70), data=1, padding=10, ink=True),
             ft.Container(content=ft.Text("Favorites", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE70), data=2, padding=10, ink=True),
-            ft.Container(content=ft.Text("Stats", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE70), data=3, padding=10, ink=True),
+            ft.Container(content=ft.Text("Watchlist", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE70), data=3, padding=10, ink=True),
+            ft.Container(content=ft.Text("Stats", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE70), data=4, padding=10, ink=True),
         ]
 
         def switch_main_tab(idx):
             tracker_tab.visible = (idx == 0)
             library_tab.visible = (idx == 1)
             favorites_tab.visible = (idx == 2)
-            stats_tab.visible = (idx == 3)
+            watchlist_tab.visible = (idx == 3)
+            stats_tab.visible = (idx == 4)
 
             for i, btn in enumerate(main_tab_buttons):
                 btn.border = ft.Border(bottom=ft.BorderSide(2, ft.Colors.AMBER)) if i == idx else None
@@ -53,7 +57,7 @@ def run():
         for i, btn in enumerate(main_tab_buttons):
             btn.on_click = lambda e, idx=i: state.navigate(idx)
 
-        main_tabs_row = ft.Row(main_tab_buttons, alignment=ft.MainAxisAlignment.CENTER, spacing=20)
+        main_tabs_row = ft.Row(main_tab_buttons, alignment=ft.MainAxisAlignment.CENTER, spacing=15)
 
         manager_modal = ManagerModalOverlay(state)
 
@@ -85,7 +89,6 @@ def run():
 
         root_stack = ft.Stack(expand=True, controls=[main_layout, manager_modal])
         
-        # KAOSU ÖNLEYEN SİHİRLİ DOKUNUŞ: Başlangıçta sadece ilk sekmeyi aktif et!
         switch_main_tab(0) 
         
         page.add(root_stack)
