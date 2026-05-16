@@ -11,12 +11,12 @@ class TrackerTab(ft.Container):
         
         self.state.subscribe(self._on_message)
 
-        self.progress_ring = ft.ProgressRing(value=0, stroke_width=8, width=90, height=90, color=ft.Colors.AMBER)
+        self.progress_ring = ft.ProgressRing(value=0, stroke_width=8, width=90, height=90, color=ft.Colors.PRIMARY)
         self.progress_text = ft.Text("0%", size=18, weight=ft.FontWeight.BOLD)
         
-        self.stat_watched = ft.Text("Watched: 0 / 0", size=15, weight=ft.FontWeight.BOLD)
-        self.stat_remaining = ft.Text("Remaining Shows: 0", size=14, color=ft.Colors.WHITE70)
-        self.stat_time = ft.Text("Remaining Time: 0 Hours 0 Mins", size=14, color=ft.Colors.GREEN)
+        self.stat_watched = ft.Text("Watched: 0 / 0", size=15, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE)
+        self.stat_remaining = ft.Text("Remaining Shows: 0", size=14, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.stat_time = ft.Text("Remaining Time: 0 Hours 0 Mins", size=14, color=ft.Colors.PRIMARY)
 
         ring_stack = ft.Stack([
             self.progress_ring,
@@ -32,7 +32,7 @@ class TrackerTab(ft.Container):
                     self.stat_time
                 ], alignment=ft.MainAxisAlignment.CENTER, spacing=25)
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=25),
-            padding=15, bgcolor="#2a2a2a", border_radius=15, width=400
+            padding=15, bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, border_radius=15, width=400
         )
 
         self.uni_drop = ft.Dropdown(width=400, label="Universe", on_select=self._on_universe_change)
@@ -89,7 +89,7 @@ class TrackerTab(ft.Container):
 
         self.rate_badge = ft.Container(
             content=ft.Text("", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
-            bgcolor="#CC000000",
+            bgcolor=ft.Colors.BLACK54,
             padding=ft.Padding(left=6, top=2, right=6, bottom=2),
             border_radius=5,
             left=5, top=45,
@@ -103,7 +103,7 @@ class TrackerTab(ft.Container):
                 icon_size=40,
                 on_click=self._open_main_tmdb
             ),
-            bgcolor="#AA000000",
+            bgcolor=ft.Colors.BLACK54,
             alignment=ft.Alignment(0, 0),
             width=170, height=240, border_radius=10,
             visible=False
@@ -163,7 +163,7 @@ class TrackerTab(ft.Container):
                 if data == title:
                     self.uni_drop.value = u
                     self.state.db.save_progress(u, data)
-                    self.state.refresh_data() # HATA BURADAYDI, DÜZELTİLDİ!
+                    self.state.refresh_data()
                     return
 
     def _on_universe_change(self, e):
@@ -177,7 +177,7 @@ class TrackerTab(ft.Container):
     def _on_show_change(self, e):
         if e: e.control.value = e.data
         self.state.db.save_progress(self.uni_drop.value, self.show_drop.value)
-        self.state.refresh_data() # HATA BURADAYDI, DÜZELTİLDİ!
+        self.state.refresh_data()
 
     def _toggle_main_fav(self, e):
         title = self.show_drop.value
@@ -305,7 +305,7 @@ class TrackerTab(ft.Container):
             self.main_rate_wrapper.visible = True
             if score > 0:
                 self.main_rate_btn.icon = ft.Icons.STAR
-                self.main_rate_btn.icon_color = ft.Colors.AMBER
+                self.main_rate_btn.icon_color = ft.Colors.PRIMARY
                 self.rate_badge.content.value = f"{score}/10"
                 self.rate_badge.visible = True
             else:
@@ -364,8 +364,8 @@ class TrackerTab(ft.Container):
 
         return ft.Column(
             controls=[
-                ft.Divider(height=20, color=ft.Colors.WHITE24),
-                ft.Text("Similar Shows", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER),
+                ft.Divider(height=20, color=ft.Colors.OUTLINE_VARIANT),
+                ft.Text("Similar Shows", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.PRIMARY),
                 rec_row
             ],
             spacing=10

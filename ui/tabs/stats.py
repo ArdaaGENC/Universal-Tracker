@@ -27,18 +27,18 @@ class StatsTab(ft.Container):
 
         movie_card = ft.Container(
             content=ft.Column([
-                ft.Text("🎬 Movies", size=16, color=ft.Colors.WHITE70, weight=ft.FontWeight.BOLD),
-                ft.Text(str(movies_count), size=28, color=ft.Colors.BLUE, weight=ft.FontWeight.BOLD)
+                ft.Text("🎬 Movies", size=16, color=ft.Colors.ON_SURFACE_VARIANT, weight=ft.FontWeight.BOLD),
+                ft.Text(str(movies_count), size=28, color=ft.Colors.PRIMARY, weight=ft.FontWeight.BOLD)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            bgcolor="#222222", padding=20, border_radius=10, expand=True
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, padding=20, border_radius=10, expand=True
         )
 
         show_card = ft.Container(
             content=ft.Column([
-                ft.Text("📺 Shows", size=16, color=ft.Colors.WHITE70, weight=ft.FontWeight.BOLD),
-                ft.Text(str(shows_count), size=28, color=ft.Colors.GREEN, weight=ft.FontWeight.BOLD)
+                ft.Text("📺 Shows", size=16, color=ft.Colors.ON_SURFACE_VARIANT, weight=ft.FontWeight.BOLD),
+                ft.Text(str(shows_count), size=28, color=ft.Colors.PRIMARY, weight=ft.FontWeight.BOLD)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            bgcolor="#222222", padding=20, border_radius=10, expand=True
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, padding=20, border_radius=10, expand=True
         )
 
         distribution_row = ft.Row([movie_card, show_card], alignment=ft.MainAxisAlignment.CENTER, spacing=20)
@@ -56,31 +56,31 @@ class StatsTab(ft.Container):
                 bar_container = ft.Container(
                     width=bar_width if bar_width > 5 else 5,
                     height=20,
-                    bgcolor=ft.Colors.AMBER,
+                    bgcolor=ft.Colors.PRIMARY,
                     border_radius=5
                 )
 
                 row = ft.Row([
                     ft.Text(uni[:15], width=110, text_align=ft.TextAlign.RIGHT, size=13),
                     bar_container,
-                    ft.Text(f"{hours:.1f} hrs", size=13, color=ft.Colors.WHITE70)
+                    ft.Text(f"{hours:.1f} hrs", size=13, color=ft.Colors.ON_SURFACE_VARIANT)
                 ], alignment=ft.MainAxisAlignment.START)
 
                 chart_column.controls.append(row)
         else:
-            chart_column.controls.append(ft.Text("No watch data available yet.", color=ft.Colors.WHITE54))
+            chart_column.controls.append(ft.Text("No watch data available yet.", color=ft.Colors.ON_SURFACE_VARIANT))
 
         chart_panel = ft.Container(
             content=ft.Column([
-                ft.Text("Time Spent per Universe", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER),
-                ft.Divider(color=ft.Colors.WHITE24),
+                ft.Text("Time Spent per Universe", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.PRIMARY),
+                ft.Divider(color=ft.Colors.OUTLINE_VARIANT),
                 chart_column
             ]),
-            bgcolor="#222222", padding=20, border_radius=10, width=500
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, padding=20, border_radius=10, width=500
         )
 
         self.content_col.controls.extend([
-            ft.Text("Watch Distribution", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER),
+            ft.Text("Watch Distribution", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.PRIMARY),
             distribution_row,
             ft.Divider(color=ft.Colors.TRANSPARENT, height=10),
             chart_panel
