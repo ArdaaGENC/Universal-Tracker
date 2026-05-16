@@ -1,19 +1,25 @@
 import flet as ft
 
 class StatsTab(ft.Container):
-    def __init__(self, switch_func, db, api):
+    def __init__(self, state):
         super().__init__()
-        self.switch_func = switch_func
-        self.db = db
-        self.api = api
+        self.state = state
         self.padding = 20
         self.expand = True
         self.visible = False
         self.content_col = ft.Column(expand=True, scroll=ft.ScrollMode.ADAPTIVE, spacing=20, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         self.content = self.content_col
+        self.state.subscribe(self._on_message)
+
+    def did_mount(self):
+        self._build_view()
+
+    def _on_message(self, msg):
+        if msg.get("action") == "DATA_CHANGED":
+            self._build_view()
 
     def _build_view(self):
-        data = self.db.get_analytics()
+        data = self.state.db.get_analytics()
         self.content_col.controls.clear()
 
         movies_count = data.get("watched_movies", 0)
@@ -80,7 +86,8 @@ class StatsTab(ft.Container):
             chart_panel
         ])
 
-        try:
-            self.update()
-        except Exception:
-            pass
+        if getattr(self, "page", None):
+            try:
+                self.update()
+            except Exception:
+                pass
