@@ -54,7 +54,13 @@ LOCALES = {
         "are_you_sure_delete": "Are you sure you want to delete",
         "are_you_sure_delete_uni": "Are you sure you want to delete the entire universe",
         "no_results_tmdb": "No results found on TMDB.",
-        "order": "Order"
+        "order": "Order",
+        "backup_section": "Data Backup",
+        "export_backup": "Export Backup",
+        "import_backup": "Import Backup",
+        "backup_success": "Backup exported successfully!",
+        "import_success": "Backup imported! Please restart the app.",
+        "backup_error": "An error occurred during backup."
     },
     "tr": {
         "settings": "Ayarlar",
@@ -111,7 +117,13 @@ LOCALES = {
         "are_you_sure_delete": "Bunu silmek istediğine emin misin:",
         "are_you_sure_delete_uni": "Tüm evreni silmek istediğine emin misin:",
         "no_results_tmdb": "TMDB üzerinde sonuç bulunamadı.",
-        "order": "Sıra"
+        "order": "Sıra",
+        "backup_section": "Veri Yedekleme",
+        "export_backup": "Yedeği Dışa Aktar",
+        "import_backup": "Yedeği İçe Aktar",
+        "backup_success": "Yedek başarıyla dışa aktarıldı!",
+        "import_success": "Yedek yüklendi! Lütfen uygulamayı yeniden başlatın.",
+        "backup_error": "Yedekleme sırasında bir hata oluştu."
     },
     "es": {
         "settings": "Ajustes",
@@ -168,6 +180,12 @@ LOCALES = {
         "are_you_sure_delete": "¿Estás seguro de que quieres eliminar",
         "are_you_sure_delete_uni": "¿Estás seguro de que quieres eliminar el universo entero",
         "no_results_tmdb": "No se encontraron resultados en TMDB.",
-        "order": "Orden"
+        "order": "Orden",
+        "backup_section": "Copia de Seguridad",
+        "export_backup": "Exportar Datos",
+        "import_backup": "Importar Datos",
+        "backup_success": "¡Copia de seguridad exportada con éxito!",
+        "import_success": "¡Datos importados! Por favor, reinicia la app.",
+        "backup_error": "Ocurrió un error durante la copia de seguridad."
     }
 }
